@@ -44,8 +44,10 @@ const renderGame = () => {
                 </div>`
             ).join('')
 
+        // get the requested div with the cords from server
         let cords = document.querySelector(`[data-y="${status.y}"] [data-x="${status.x}"]`);
 
+        // set a timeout for how long we should wait before displaying the virus for the users acording to the server
         setTimeout(() => {
             var start = Date.now();
 
