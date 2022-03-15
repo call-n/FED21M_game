@@ -103,6 +103,12 @@ const handleGame = function(callback) {
     })
 }
 
+const handleGamePoint = function() {
+    // todo: wait until both players has finished and make sure they are in the same game.
+    // todo: compate the two reaction times and store the point in the same session for the winning player
+    console.log('lmfao')
+}
+
 module.exports = function(socket, _io) {
 	io = _io;
 
@@ -115,4 +121,6 @@ module.exports = function(socket, _io) {
     //handle game start
     socket.on('user:startgame', handleGame)
 
+    //determine who the score goes to and update it on the frontend
+    socket.on('user:gamepoint', handleGamePoint)
 }

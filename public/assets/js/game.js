@@ -53,7 +53,11 @@ const renderGame = () => {
                 var reactionTime = Date.now() - start;
 
                 console.log(reactionTime)
-                
+                socket.emit('user:gamepoint', reactionTime, (status) => {
+
+                })
+                cords.classList.remove('ronavirus')
+                cords.classList.add('killedvirus')
             })
             cords.classList.add('ronavirus')
         }, status.time)
