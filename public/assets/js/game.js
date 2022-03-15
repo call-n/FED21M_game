@@ -24,19 +24,41 @@ const renderGame = () => {
     waitingEl.classList.add('hide')
     // show the game view
     gameWrapperEl.classList.remove('hide');
+    // keep track of the y
+    let i = 1;
 
-    // render the gameboard
-    gameboardEl.innerHTML = gameboard.map(y => 
-        `<div class="row">
-        ${
-            y.map(x => 
-                `<div class="col" data-x="${x}">
-                    ${x}
+    socket.emit('user:startgame', (status) => {
+
+        console.log(status)
+        if (status.success) {
+            // render the gameboard
+            gameboardEl.innerHTML = gameboard.map(y => 
+                `<div class="row" data-y="${i}">
+                ${i++,
+                    y.map(x => 
+                        `<div class="col" data-x="${x}">
+                            
+                        </div>`
+                    ).join('')
+                }
                 </div>`
             ).join('')
+
+        let cords = document.querySelector(`[data-y="${status.y}"] [data-x="${status.x}"]`);
+
+        setTimeout(() => {
+            var start = Date.now();
+
+            cords.addEventListener('click', e => {
+                var reactionTime = Date.now() - start;
+
+                console.log(reactionTime)
+                
+            })
+            cords.classList.add('ronavirus')
+        }, status.time)
         }
-        </div>`
-    ).join('')
+    });
 }
 
 socket.on('user:connected', (username) => {

@@ -87,6 +87,22 @@ const createSession = function(socket, username) {
     return startGame;
 }
 
+const handleGame = function(callback) {
+    // todo: generate random cords between 1,15 and 1,10
+    const y = Math.floor(Math.random() * 10) + 1;
+    const x = Math.floor(Math.random() * 15) + 1;
+
+    // todo: generate random time between 1 and 5
+    const time = Math.floor(Math.random() * 4000) + 1;
+
+    callback({
+        success: true,
+        y: y,
+        x: x,
+        time: time
+    })
+}
+
 module.exports = function(socket, _io) {
 	io = _io;
 
@@ -95,5 +111,8 @@ module.exports = function(socket, _io) {
 
 	// handle user joined
 	socket.on('user:joined', handleUserJoined);
+
+    //handle game start
+    socket.on('user:startgame', handleGame)
 
 }
