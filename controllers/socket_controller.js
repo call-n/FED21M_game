@@ -1,5 +1,3 @@
-const { emit } = require('../app');
-
 const debug = require('debug')('chat:socket_controller');
 
 let io = null; // socket.io server instance
