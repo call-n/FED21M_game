@@ -19,33 +19,53 @@ const gameboard = [
     [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
 ]
 
-const renderGame = () => {
+const renderGame = (session, player) => {
     // hide the wating view
     waitingEl.classList.add('hide')
     // show the game view
     gameWrapperEl.classList.remove('hide');
+    // tell the server its time to generate a game
+    socket.emit('user:startgame', session, player);
+}
+
+socket.on('user:connected', (username) => {
+	console.log(`${username} connected 🥳`);
+});
+
+socket.on('user:disconnected', (username) => {
+	console.log(`${username} disconnected 😢`);
+});
+
+socket.on('user:session', (username, session, startGame) => {
+	console.log(`${username} joined session ${session}`);
+
+    if( startGame ){
+        renderGame(session, username);
+    }
+});
+
+socket.on('game:success', data => {
+    console.log("the game came thru:", data);
+
     // keep track of the y
     let i = 1;
 
-    socket.emit('user:startgame', (status) => {
-
-        console.log(status)
-        if (status.success) {
-            // render the gameboard
-            gameboardEl.innerHTML = gameboard.map(y => 
-                `<div class="row" data-y="${i}">
-                ${i++,
-                    y.map(x => 
-                        `<div class="col" data-x="${x}">
-                            
-                        </div>`
-                    ).join('')
-                }
-                </div>`
-            ).join('')
+    if (data.success) {
+        // render the gameboard
+        gameboardEl.innerHTML = gameboard.map(y => 
+            `<div class="row" data-y="${i}">
+            ${i++,
+                y.map(x => 
+                    `<div class="col" data-x="${x}">
+                        
+                    </div>`
+                ).join('')
+            }
+            </div>`
+        ).join('')
 
         // get the requested div with the cords from server
-        let cords = document.querySelector(`[data-y="${status.y}"] [data-x="${status.x}"]`);
+        let cords = document.querySelector(`[data-y="${data.y}"] [data-x="${data.x}"]`);
 
         // set a timeout for how long we should wait before displaying the virus for the users acording to the server
         setTimeout(() => {
@@ -62,24 +82,7 @@ const renderGame = () => {
                 cords.classList.add('killedvirus')
             })
             cords.classList.add('ronavirus')
-        }, status.time)
-        }
-    });
-}
-
-socket.on('user:connected', (username) => {
-	console.log(`${username} connected 🥳`);
-});
-
-socket.on('user:disconnected', (username) => {
-	console.log(`${username} disconnected 😢`);
-});
-
-socket.on('user:session', (username, session, startGame) => {
-	console.log(`${username} joined session ${session}`);
-
-    if( startGame ){
-        renderGame();
+        }, data.time)
     }
 });
 
@@ -99,9 +102,6 @@ usernameForm.addEventListener('submit', e => {
             // show wating for players
             if( !status.start) {
                 waitingEl.classList.remove('hide')
-            } else {
-                // render the game
-                renderGame();
             }
 		}
 	});

@@ -1,3 +1,5 @@
+const { emit } = require('../app');
+
 const debug = require('debug')('chat:socket_controller');
 
 let io = null; // socket.io server instance
@@ -13,26 +15,6 @@ const handleDisconnect = function() {
 
     // remove user from list of connected users
     delete users[this.id];
-}
-
-// Handle when a user has joined the chat
-const handleUserJoined = function(username, callback) {
-    
-	users[this.id] = username;
-
-    // calls to create a session or join one and gets back a boolean if its time to start
-    const startGame = createSession(this, username);
-
-    debug(`User ${username} with socket id ${this.id} joined`);
-
-    // let everyone know that someone has connected to the chat
-    this.broadcast.emit('user:connected', username);
-
-    // confirm join
-    callback({
-        success: true,
-        start: startGame
-    });
 }
 
 const createSession = function(socket, username) {
@@ -82,12 +64,47 @@ const createSession = function(socket, username) {
     debug(`User ${username} joined session ${sessionToJoin}`);
 
     // broadcast to the current session that someone has joined had send the username and if its time to start the game
-    socket.broadcast.to(sessionToJoin).emit('user:session', username, sessionToJoin, startGame);
+    io.in(sessionToJoin).emit('user:session', username, sessionToJoin, startGame);
 
-    return startGame;
+    return {
+        start: startGame,
+        session: sessionToJoin,
+        player: socket.id
+    };
 }
 
-const handleGame = function(callback) {
+// Handle when a user has joined the chat
+const handleUserJoined = function(username, callback) {
+    
+	users[this.id] = username;
+
+    // calls to create a session or join one and gets back a boolean if its time to start
+    const startGame = createSession(this, username);
+
+    debug(`User ${username} with socket id ${this.id} joined`);
+
+    // let everyone know that someone has connected to the chat
+    this.broadcast.emit('user:connected', username);
+
+    // confirm join
+    callback({
+        success: true,
+        start: startGame.start,
+        session: startGame.session,
+        player: startGame.player
+    });
+}
+
+let holder = null;
+const handleGame = function(session, player, callback) {
+    
+
+    if ( holder === null ){
+        holder = session
+        return;
+    } else {
+        holder = null;
+    }
     // todo: generate random cords between 1,15 and 1,10
     const y = Math.floor(Math.random() * 10) + 1;
     const x = Math.floor(Math.random() * 15) + 1;
@@ -95,12 +112,14 @@ const handleGame = function(callback) {
     // todo: generate random time between 1 and 5
     const time = Math.floor(Math.random() * 4000) + 1;
 
-    callback({
+    const data = {
         success: true,
         y: y,
         x: x,
         time: time
-    })
+    }
+
+    io.in(session).emit('game:success', data)
 }
 
 const handleGamePoint = function() {
