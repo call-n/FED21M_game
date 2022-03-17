@@ -112,6 +112,7 @@ const handleGame = function(session, player, callback) {
 
     const data = {
         success: true,
+        session,
         y: y,
         x: x,
         time: time
@@ -120,10 +121,27 @@ const handleGame = function(session, player, callback) {
     io.in(session).emit('game:success', data)
 }
 
-const handleGamePoint = function() {
+let waiter = null;
+let compareReaction;
+let winner;
+const handleGamePoint = function(reactionTime, player, session) {
     // todo: wait until both players has finished and make sure they are in the same game.
+
+    if ( waiter === null ){
+        waiter = true;
+        compareReaction = {
+            reactionTime, 
+            player
+        };
+        return;
+    } else {
+        holder = null;
+    }
+
     // todo: compate the two reaction times and store the point in the same session for the winning player
-    console.log('lmfao')
+    compareReaction.reactionTime > reactionTime ? winner = player : winner = compareReaction.player
+
+    io.in(session).emit('game:result', winner)
 }
 
 module.exports = function(socket, _io) {
@@ -139,5 +157,6 @@ module.exports = function(socket, _io) {
     socket.on('user:startgame', handleGame)
 
     //determine who the score goes to and update it on the frontend
-    socket.on('user:gamepoint', handleGamePoint)
+    socket.on('game:point', handleGamePoint)
+
 }

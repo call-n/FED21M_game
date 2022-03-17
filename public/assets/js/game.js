@@ -5,6 +5,7 @@ const gameWrapperEl = document.querySelector('#game-wrapper');
 const usernameForm = document.querySelector('#username-form');
 const gameboardEl = document.querySelector('#game-board');
 const waitingEl = document.querySelector('#waiting');
+const scoreEl = document.querySelector('#score')
 
 const gameboard = [
     [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
@@ -45,8 +46,7 @@ socket.on('user:session', (username, session, startGame) => {
 });
 
 socket.on('game:success', data => {
-    console.log("the game came thru:", data);
-
+   
     // keep track of the y
     let i = 1;
 
@@ -74,17 +74,35 @@ socket.on('game:success', data => {
             cords.addEventListener('click', e => {
                 var reactionTime = Date.now() - start;
 
-                console.log(reactionTime)
-                socket.emit('user:gamepoint', reactionTime, (status) => {
-
-                })
                 cords.classList.remove('ronavirus')
                 cords.classList.add('killedvirus')
+
+                socket.emit('game:point', reactionTime, socket.id, data.session)
             })
             cords.classList.add('ronavirus')
         }, data.time)
     }
 });
+
+const score1 = 0;
+const score2 = 0; 
+socket.on('game:result', (player) => {
+    if( socket.id === player ){
+        scoreEl.innerHTML = `
+                <span class="you">${score1 + 1}</span>
+                -
+                <span>${score2}</span>
+            `
+        alert('u won');
+    } else {
+        scoreEl.innerHTML = `
+                <span class="you">${score2}</span>
+                -
+                <span>${score1 + 1}</span>
+            `
+        alert('u lost');
+    }
+})
 
 usernameForm.addEventListener('submit', e => {
 	e.preventDefault();
