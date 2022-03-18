@@ -5,7 +5,9 @@ const gameWrapperEl = document.querySelector('#game-wrapper');
 const usernameForm = document.querySelector('#username-form');
 const gameboardEl = document.querySelector('#game-board');
 const waitingEl = document.querySelector('#waiting');
-const scoreEl = document.querySelector('#score')
+const scoreEl = document.querySelector('#score');
+const reactionEl = document.querySelector('#reaction');
+const timerEl = document.querySelector('#timer')
 
 const gameboard = [
     [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
@@ -20,13 +22,13 @@ const gameboard = [
     [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
 ]
 
-const renderGame = (session, player) => {
+const renderGame = (session) => {
     // hide the wating view
     waitingEl.classList.add('hide')
     // show the game view
     gameWrapperEl.classList.remove('hide');
     // tell the server its time to generate a game
-    socket.emit('user:startgame', session, player);
+    socket.emit('user:startgame', session, socket.id);
 }
 
 socket.on('user:connected', (username) => {
@@ -73,34 +75,55 @@ socket.on('game:success', data => {
 
             cords.addEventListener('click', e => {
                 var reactionTime = Date.now() - start;
+                clicked = true;
 
                 cords.classList.remove('ronavirus')
                 cords.classList.add('killedvirus')
 
                 socket.emit('game:point', reactionTime, socket.id, data.session)
             })
+
             cords.classList.add('ronavirus')
         }, data.time)
     }
 });
 
-const score1 = 0;
-const score2 = 0; 
-socket.on('game:result', (player) => {
-    if( socket.id === player ){
+socket.on('game:result', (winner, points, keepPlaying, session) => {
+    console.log(points)
+    if(points.player1 === socket.id ){
         scoreEl.innerHTML = `
-                <span class="you">${score1 + 1}</span>
-                -
-                <span>${score2}</span>
-            `
-        alert('u won');
+        <span>${points.player1points}</span>
+        -
+        <span>${points.player2points}</span>
+        `
+        timerEl.innerHTML = ''
+        reactionEl.innerHTML = `
+        <span>${points.p1name}${points.p1react}</span>
+        <br>
+        <span>${points.p2name}${points.p2react}</span>
+        `
     } else {
         scoreEl.innerHTML = `
-                <span class="you">${score2}</span>
-                -
-                <span>${score1 + 1}</span>
-            `
-        alert('u lost');
+        <span>${points.player2points}</span>
+        -
+        <span>${points.player1points}</span>
+        `
+        timerEl.innerHTML = ''
+        reactionEl.innerHTML = `
+            <span>${points.p2name}${points.p2react}</span>
+            <br>
+            <span>${points.p1name}${points.p1react}</span>
+        `
+    }
+    if ( keepPlaying ) {
+        winner === socket.id ? console.log('du vann') : console.log('loser L')
+        setTimeout(() => {
+            console.log('new round')
+            renderGame(session);
+        }, 2000)
+    } else {
+        console.log('slut')
+        return;
     }
 })
 

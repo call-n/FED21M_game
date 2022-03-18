@@ -25,15 +25,22 @@ const createSession = function(socket, username) {
     // intital create session
     if( sessions.length < 1) {
         sessions.push({
+            p1username: username,
             player1: socket.id,
+            p2username: '',
             player2: '',
-            full: false
+            full: false,
+            p1wins: 0,
+            p2wins: 0,
+            rounds: 0,
         })
         sessionToJoin = socket.id;
     } else {
         // maps over the session to see if they are full
         sessions.map(session => {
             if (session.full === false) {
+                // set username for player 2
+                session.p2username = username;
                 // set player 2 to the player trying to connect
                 session.player2 = socket.id;
                 // set the session to be full
@@ -45,9 +52,14 @@ const createSession = function(socket, username) {
             } else {
                 // if all sessions are full add a new one
                 sessions.push({
+                    p1username: username,
                     player1: socket.id,
+                    p2username: '',
                     player2: '',
-                    full: false
+                    full: false,
+                    p1wins: 0,
+                    p2wins: 0,
+                    rounds: 0,
                 })
                 sessionToJoin = socket.id;
             }
@@ -93,16 +105,25 @@ const handleUserJoined = function(username, callback) {
     });
 }
 
-let holder = null;
-const handleGame = function(session, player, callback) {
+let p1here = false;
+let p2here = false;
+const handleGame = function(session, player) {
     
+    const theSesh = sessions.find(s => s.player1 === session)
 
-    if ( holder === null ){
-        holder = session
-        return;
-    } else {
-        holder = null;
+    if ( theSesh.player1 === player) {
+        p1here = true;
+        console.log('player 1 has arrived')
     }
+    if ( theSesh.player2 === player ){
+        p2here = true;
+        console.log('player 2 has arrived')
+    }
+
+    if( !p1here && !p2here ){
+        return;
+    }
+
     // todo: generate random cords between 1,15 and 1,10
     const y = Math.floor(Math.random() * 10) + 1;
     const x = Math.floor(Math.random() * 15) + 1;
@@ -118,30 +139,72 @@ const handleGame = function(session, player, callback) {
         time: time
     }
 
+    p1here = false;
+    p2here = false;
+
     io.in(session).emit('game:success', data)
 }
 
-let waiter = null;
 let compareReaction;
 let winner;
+let keepPlaying;
+let p1react;
+let p2react;
 const handleGamePoint = function(reactionTime, player, session) {
     // todo: wait until both players has finished and make sure they are in the same game.
+    // find the match session object
+    const theSesh = sessions.find(s => s.player1 === session)
 
-    if ( waiter === null ){
-        waiter = true;
+    if ( theSesh.player1 === player) {
+        p1here = true;
+        console.log('player 1 has arrived in gamepoint')
+    }
+    if ( theSesh.player2 === player ){
+        p2here = true;
+        console.log('player 2 has arrived in gamepoint')
+    }
+
+    if( !p1here && p2here || p1here && !p2here ){
         compareReaction = {
             reactionTime, 
             player
         };
         return;
-    } else {
-        holder = null;
     }
+
+    // set the players reactiontimes for frontend use
+    theSesh.player1 === compareReaction.player ? p1react = compareReaction.reactionTime : p2react = compareReaction.reactionTime;
+
+    theSesh.player1 === player ? p1react = reactionTime : p2react = reactionTime;
+
+
+    // add 1 to the rounds
+    theSesh.rounds++;
+    console.log(theSesh.rounds)
 
     // todo: compate the two reaction times and store the point in the same session for the winning player
     compareReaction.reactionTime > reactionTime ? winner = player : winner = compareReaction.player
 
-    io.in(session).emit('game:result', winner)
+    theSesh.player1 === winner ? theSesh.p1wins++ : theSesh.p2wins++;
+
+    if( theSesh.rounds === 10 ){
+        keepPlaying = false;
+    } else {
+        keepPlaying = true
+    }
+
+    const points = {
+        p1name: theSesh.p1username,
+        player1: theSesh.player1,
+        player1points: theSesh.p1wins,
+        p1react: p1react,
+        p2name: theSesh.p2username,
+        player2: theSesh.player2,
+        player2points: theSesh.p2wins,
+        p2react: p2react
+    }
+
+    io.in(session).emit('game:result', winner, points, keepPlaying, session)
 }
 
 module.exports = function(socket, _io) {
