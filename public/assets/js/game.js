@@ -7,7 +7,10 @@ const gameboardEl = document.querySelector('#game-board');
 const waitingEl = document.querySelector('#waiting');
 const scoreEl = document.querySelector('#score');
 const reactionEl = document.querySelector('#reaction');
-const timerEl = document.querySelector('#timer')
+const timerEl = document.querySelector('#timer');
+const endgameEl = document.querySelector('#endgame');
+const endgametextEl = document.querySelector('#endgametext');
+const playagainEl = document.querySelector('#playagain');
 
 const gameboard = [
     [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
@@ -98,9 +101,9 @@ socket.on('game:result', (winner, points, keepPlaying, session) => {
         `
         timerEl.innerHTML = ''
         reactionEl.innerHTML = `
-        <span>${points.p1name}${points.p1react}</span>
+        <span>${points.p1name} - ${points.p1react}</span>
         <br>
-        <span>${points.p2name}${points.p2react}</span>
+        <span>${points.p2name} - ${points.p2react}</span>
         `
     } else {
         scoreEl.innerHTML = `
@@ -110,9 +113,9 @@ socket.on('game:result', (winner, points, keepPlaying, session) => {
         `
         timerEl.innerHTML = ''
         reactionEl.innerHTML = `
-            <span>${points.p2name}${points.p2react}</span>
+            <span>${points.p2name} - ${points.p2react}</span>
             <br>
-            <span>${points.p1name}${points.p1react}</span>
+            <span>${points.p1name} - ${points.p1react}</span>
         `
     }
     if ( keepPlaying ) {
@@ -123,8 +126,34 @@ socket.on('game:result', (winner, points, keepPlaying, session) => {
         }, 2000)
     } else {
         console.log('slut')
-        return;
+        socket.emit('game:end', session, socket.id);
     }
+})
+
+socket.on('game:endresult', (winnerGame, session) => {
+    if( winnerGame === socket.id ){
+        endgameEl.classList.remove('hide')
+        endgametextEl.innerHTML = `
+        <div class="alert alert-info">WINNER WINNER CHICKEN DINNER</div>
+        `;
+    } else {
+        endgameEl.classList.remove('hide')
+        endgametextEl.innerHTML = `
+        <div class="alert alert-danger">lol, u lost xd</div>
+        `;
+    }
+
+    playagainEl.addEventListener('click', () => {
+        console.log("play again")
+
+        endgameEl.classList.add('hide')
+        socket.emit('game:restart', session, socket.id);
+    })
+})
+
+socket.on('game:restarted', (session) => {
+    console.log("game restarded")
+    renderGame(session);
 })
 
 usernameForm.addEventListener('submit', e => {

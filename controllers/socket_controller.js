@@ -113,14 +113,14 @@ const handleGame = function(session, player) {
 
     if ( theSesh.player1 === player) {
         p1here = true;
-        console.log('player 1 has arrived')
+        console.log('player 1 has arrived in handlegame')
     }
     if ( theSesh.player2 === player ){
         p2here = true;
-        console.log('player 2 has arrived')
+        console.log('player 2 has arrived in handlegame')
     }
 
-    if( !p1here && !p2here ){
+    if( !p1here && p2here || p1here && !p2here ){
         return;
     }
 
@@ -180,7 +180,6 @@ const handleGamePoint = function(reactionTime, player, session) {
 
     // add 1 to the rounds
     theSesh.rounds++;
-    console.log(theSesh.rounds)
 
     // todo: compate the two reaction times and store the point in the same session for the winning player
     compareReaction.reactionTime > reactionTime ? winner = player : winner = compareReaction.player
@@ -204,7 +203,53 @@ const handleGamePoint = function(reactionTime, player, session) {
         p2react: p2react
     }
 
+    p1here = false;
+    p2here = false;
+
     io.in(session).emit('game:result', winner, points, keepPlaying, session)
+}
+
+let winnerGame;
+const handleEndGame = function(session) {
+   
+    // find the match session object
+    const theSesh = sessions.find(s => s.player1 === session)
+
+    if( theSesh.p1wins > theSesh.p2wins ) {
+        winnerGame = theSesh.player1;
+    } else {
+        winnerGame = theSesh.player2;
+    }
+
+    io.in(session).emit('game:endresult', winnerGame, session)
+}
+
+const handleRestart = function(session, player) {
+    const theSesh = sessions.find(s => s.player1 === session)
+
+    if ( theSesh.player1 === player) {
+        p1here = true;
+        console.log('player 1 has arrived in restart')
+    }
+    if ( theSesh.player2 === player ){
+        p2here = true;
+        console.log('player 2 has arrived in restart')
+    }
+
+    if( !p1here && p2here || p1here && !p2here ){
+        return;
+    }
+    console.log('restared game from server')
+
+    // this is just to reset the currect game if both want to keep playing
+    theSesh.p1wins = 0;
+    theSesh.p2wins = 0;
+    theSesh.rounds = 0;
+
+    p1here = false;
+    p2here = false;
+
+    io.in(session).emit('game:restarted', session)
 }
 
 module.exports = function(socket, _io) {
@@ -222,4 +267,8 @@ module.exports = function(socket, _io) {
     //determine who the score goes to and update it on the frontend
     socket.on('game:point', handleGamePoint)
 
+    //handle the end sequence for the game
+    socket.on('game:end', handleEndGame)
+
+    socket.on('game:restart', handleRestart)
 }
