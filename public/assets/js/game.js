@@ -46,7 +46,7 @@ socket.on('user:session', (username, session, startGame) => {
 	console.log(`${username} joined session ${session}`);
 
     if( startGame ){
-        renderGame(session, username);
+        renderGame(session);
     }
 });
 
@@ -144,8 +144,15 @@ socket.on('game:endresult', (winnerGame, session) => {
     }
 
     playagainEl.addEventListener('click', () => {
-        console.log("play again")
-
+        // reset the score
+        scoreEl.innerHTML = `
+        <span>0</span>
+        -
+        <span>0</span>
+        `;
+        // reset reaction time
+        reactionEl.innerHTML = '';
+        waitingEl.classList.remove('hide')
         endgameEl.classList.add('hide')
         socket.emit('game:restart', session, socket.id);
     })
