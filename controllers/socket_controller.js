@@ -2,17 +2,41 @@ const debug = require('debug')('chat:socket_controller');
 
 let io = null; // socket.io server instance
 
-const users = {};
-const sessions = []
+var sessions = []
 
+let playerDisconnected;
+let theSession = false;
 const handleDisconnect = function() {
 	debug(`Client ${this.id} disconnected :(`);
 
-    // let everyone connected know that user has disconnected
-    this.broadcast.emit('user:disconnected', users[this.id]);
+    // need to find the session with this.id and then tell erase them
+    if (sessions.find(s => s.player1 === this.id)){
+        theSession = sessions.find(s => s.player1 === this.id)
+        playerDisconnected = theSession.p1username;
+        theSession.player1 = '';
+        console.log("player1 dissconnected in ", theSession)
+        // this is to delete the current session if both left
+        if(theSession.player2 === ''){
+            sessions = sessions.filter(s => s.id !== theSession.id)
+            console.log(sessions)
+        }
+    }
 
-    // remove user from list of connected users
-    delete users[this.id];
+    if (sessions.find(s => s.player2 === this.id)){
+        theSession = sessions.find(s => s.player2 === this.id)
+        playerDisconnected = theSession.p2username;
+        theSession.player2 = '';
+        console.log("player2 dissconnected in ", theSession)
+        // this is to delete the current session if both left
+        if(theSession.player1 === ''){
+            sessions = sessions.filter(s => s.id !== theSession.id)
+            console.log(sessions)
+        }
+    }
+
+    if(theSession.id){
+        io.in(theSession.id).emit('user:disconnect', playerDisconnected)
+    }
 }
 
 const createSession = function(socket, username) {
@@ -25,6 +49,7 @@ const createSession = function(socket, username) {
     // intital create session
     if( sessions.length < 1) {
         sessions.push({
+            id: socket.id,
             p1username: username,
             player1: socket.id,
             p2username: '',
@@ -46,12 +71,13 @@ const createSession = function(socket, username) {
                 // set the session to be full
                 session.full = true;
                 // and lastly changes the the session for the currect socket to join
-                sessionToJoin = session.player1;
+                sessionToJoin = session.id;
                 // tells the front end its go time
                 startGame = true;
             } else {
                 // if all sessions are full add a new one
                 sessions.push({
+                    id: socket.id,
                     p1username: username,
                     player1: socket.id,
                     p2username: '',
@@ -86,8 +112,6 @@ const createSession = function(socket, username) {
 // Handle when a user has joined the chat
 const handleUserJoined = function(username, callback) {
     
-	users[this.id] = username;
-
     // calls to create a session or join one and gets back a boolean if its time to start
     const startGame = createSession(this, username);
 
@@ -109,7 +133,7 @@ let p1here = false;
 let p2here = false;
 const handleGame = function(session, player) {
     
-    const theSesh = sessions.find(s => s.player1 === session)
+    const theSesh = sessions.find(s => s.id === session)
 
     if ( theSesh.player1 === player) {
         p1here = true;
@@ -153,7 +177,7 @@ let p2react;
 const handleGamePoint = function(reactionTime, player, session) {
     // todo: wait until both players has finished and make sure they are in the same game.
     // find the match session object
-    const theSesh = sessions.find(s => s.player1 === session)
+    const theSesh = sessions.find(s => s.id === session)
 
     if ( theSesh.player1 === player) {
         p1here = true;
@@ -213,7 +237,7 @@ let winnerGame;
 const handleEndGame = function(session) {
    
     // find the match session object
-    const theSesh = sessions.find(s => s.player1 === session)
+    const theSesh = sessions.find(s => s.id === session)
 
     if( theSesh.p1wins > theSesh.p2wins ) {
         winnerGame = theSesh.player1;
@@ -225,7 +249,7 @@ const handleEndGame = function(session) {
 }
 
 const handleRestart = function(session, player) {
-    const theSesh = sessions.find(s => s.player1 === session)
+    const theSesh = sessions.find(s => s.id === session)
 
     if ( theSesh.player1 === player) {
         p1here = true;

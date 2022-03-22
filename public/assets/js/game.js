@@ -38,8 +38,16 @@ socket.on('user:connected', (username) => {
 	console.log(`${username} connected 🥳`);
 });
 
-socket.on('user:disconnected', (username) => {
+socket.on('user:disconnect', (username) => {
 	console.log(`${username} disconnected 😢`);
+
+    endgameEl.classList.remove('hide');
+    endgametextEl.innerHTML = `${username} disconnected...`;
+    playagainEl.innerHTML = 'One more try?';
+
+    playagainEl.addEventListener('click', () => {
+        window.location.reload();
+    })
 });
 
 socket.on('user:session', (username, session, startGame) => {
