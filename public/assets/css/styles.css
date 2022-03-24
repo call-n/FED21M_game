@@ -104,12 +104,18 @@
 }
 
 .ronavirus {
-    background-color: red;
+    background-image: url('../photos/vilus.png');
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
 	border-radius: 5px;
 }
 
 .killedvirus {
-    background-color: greenyellow;
+	background-image: url('../photos/blood.png');
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
 }
 
 #endgame {

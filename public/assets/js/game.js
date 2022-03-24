@@ -109,9 +109,9 @@ socket.on('game:result', (winner, points, keepPlaying, session) => {
         `
         timerEl.innerHTML = ''
         reactionEl.innerHTML = `
-        <span>${points.p1name} - ${points.p1react}</span>
+        <span>${points.p1name} - ${points.p1react} ms</span>
         <br>
-        <span>${points.p2name} - ${points.p2react}</span>
+        <span>${points.p2name} - ${points.p2react} ms</span>
         `
     } else {
         scoreEl.innerHTML = `
@@ -121,9 +121,9 @@ socket.on('game:result', (winner, points, keepPlaying, session) => {
         `
         timerEl.innerHTML = ''
         reactionEl.innerHTML = `
-            <span>${points.p2name} - ${points.p2react}</span>
+            <span>${points.p2name} - ${points.p2react} ms</span>
             <br>
-            <span>${points.p1name} - ${points.p1react}</span>
+            <span>${points.p1name} - ${points.p1react} ms</span>
         `
     }
     if ( keepPlaying ) {
