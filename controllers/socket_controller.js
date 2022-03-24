@@ -64,6 +64,7 @@ const createSession = function(socket, username) {
         // maps over the session to see if they are full
         sessions.map(session => {
             if (session.full === false) {
+                console.log('session joiner')
                 // set username for player 2
                 session.p2username = username;
                 // set player 2 to the player trying to connect
@@ -74,22 +75,24 @@ const createSession = function(socket, username) {
                 sessionToJoin = session.id;
                 // tells the front end its go time
                 startGame = true;
-            } else {
-                // if all sessions are full add a new one
-                sessions.push({
-                    id: socket.id,
-                    p1username: username,
-                    player1: socket.id,
-                    p2username: '',
-                    player2: '',
-                    full: false,
-                    p1wins: 0,
-                    p2wins: 0,
-                    rounds: 0,
-                })
-                sessionToJoin = socket.id;
-            }
+            } 
         })
+        if ( !startGame ) {
+            console.log('session creater')
+            // if all sessions are full add a new one
+            sessions.push({
+                id: socket.id,
+                p1username: username,
+                player1: socket.id,
+                p2username: '',
+                player2: '',
+                full: false,
+                p1wins: 0,
+                p2wins: 0,
+                rounds: 0,
+            })
+            sessionToJoin = socket.id;
+        }
     }
 
     debug(sessions);
