@@ -1,44 +1,16 @@
 const debug = require('debug')('chat:socket_controller');
 
 let io = null; // socket.io server instance
+var sessions = [] // Array for storage of sessions
 
-var sessions = []
-
-let playerDisconnected;
-let theSession = false;
-const handleDisconnect = function() {
-	debug(`Client ${this.id} disconnected :(`);
-
-    // need to find the session with this.id and then tell erase them
-    if (sessions.find(s => s.player1 === this.id)){
-        theSession = sessions.find(s => s.player1 === this.id)
-        playerDisconnected = theSession.p1username;
-        theSession.player1 = '';
-        console.log("player1 dissconnected in ", theSession)
-        // this is to delete the current session if both left
-        if(theSession.player2 === ''){
-            sessions = sessions.filter(s => s.id !== theSession.id)
-            console.log(sessions)
-        }
-    }
-
-    if (sessions.find(s => s.player2 === this.id)){
-        theSession = sessions.find(s => s.player2 === this.id)
-        playerDisconnected = theSession.p2username;
-        theSession.player2 = '';
-        console.log("player2 dissconnected in ", theSession)
-        // this is to delete the current session if both left
-        if(theSession.player1 === ''){
-            sessions = sessions.filter(s => s.id !== theSession.id)
-            console.log(sessions)
-        }
-    }
-
-    if(theSession.id){
-        io.in(theSession.id).emit('user:disconnect', playerDisconnected)
-    }
-}
-
+/**
+ * Function for the creation of session
+ * Flow {
+ *  checks if there is any sessions if no create
+ *  - checks if there is a session available for join if so, join
+ *  - else create a new one
+ * }
+ */
 const createSession = function(socket, username) {
 
     // Just to hold the session to join id
@@ -77,6 +49,9 @@ const createSession = function(socket, username) {
                 startGame = true;
             } 
         })
+        /* this just checks if its go time 
+        and if its still false we know that there is no session to join.
+        */
         if ( !startGame ) {
             console.log('session creater')
             // if all sessions are full add a new one
@@ -112,7 +87,13 @@ const createSession = function(socket, username) {
     };
 }
 
-// Handle when a user has joined the chat
+/**
+ * Function for the user connection
+ * Flow {
+ *  ask for a session and gets back if we should start the game
+ *  Broadcast the data we need for frontend
+ * }
+ */
 const handleUserJoined = function(username, callback) {
     
     // calls to create a session or join one and gets back a boolean if its time to start
@@ -132,6 +113,64 @@ const handleUserJoined = function(username, callback) {
     });
 }
 
+/**
+ * Function for the user disconnection
+ * Flow {
+ *  checks if there is any sessions if no create
+ *  - checks if there is a session available for join if so, join
+ *  - else create a new one
+ * }
+ */
+// Variables for handleDisconnect
+let playerDisconnected;
+let theSession = false;
+const handleDisconnect = function() {
+	debug(`Client ${this.id} disconnected :(`);
+
+    // need to find the session with this.id and then tell erase them
+    if (sessions.find(s => s.player1 === this.id)){
+        // finds the session player disconnected from
+        theSession = sessions.find(s => s.player1 === this.id)
+        // holds who the disconnected player is
+        playerDisconnected = theSession.p1username;
+        // this is just an identifier so we know if we should delete current session
+        theSession.player1 = '';
+        console.log("player1 dissconnected in ", theSession)
+        // this is to delete the current session if both left
+        if(theSession.player2 === ''){
+            sessions = sessions.filter(s => s.id !== theSession.id)
+            console.log(sessions)
+        }
+    }
+
+    // this does exactly the same as above except its player 2
+    if (sessions.find(s => s.player2 === this.id)){
+        theSession = sessions.find(s => s.player2 === this.id)
+        playerDisconnected = theSession.p2username;
+        theSession.player2 = '';
+        console.log("player2 dissconnected in ", theSession)
+        if(theSession.player1 === ''){
+            sessions = sessions.filter(s => s.id !== theSession.id)
+            console.log(sessions)
+        }
+    }
+
+    // this only work if one of the above has ran, just to confirm
+    if(theSession.id){
+        io.in(theSession.id).emit('user:disconnect', playerDisconnected)
+    }
+}
+
+/**
+ * Function for the Handling of the game
+ * Flow {
+ *  checks if both users have come to the initial start of the game
+ *  Generates the x and y cordinates and the time we want to delay before we show
+ *  Structure the data in a object for frontend use
+ *  return the "checker if both player" to false for later use
+ * }
+ */
+// this is variables for all functions below, Keeper of player. Muy importante
 let p1here = false;
 let p2here = false;
 const handleGame = function(session, player) {
@@ -172,6 +211,16 @@ const handleGame = function(session, player) {
     io.in(session).emit('game:success', data)
 }
 
+
+/**
+ * Function for the Handling of the game
+ * Flow {
+ *  checks if both users have come to the initial start of the game
+ *  Checks who won and the reaction time of each player
+ *  structre object with data for frontend use
+ * }
+ */
+// this is just holder variables for the function below, dont ask my why.
 let compareReaction;
 let winner;
 let keepPlaying;
@@ -202,6 +251,7 @@ const handleGamePoint = function(reactionTime, player, session) {
     // set the players reactiontimes for frontend use
     theSesh.player1 === compareReaction.player ? p1react = compareReaction.reactionTime : p2react = compareReaction.reactionTime;
 
+    // check reaction time of each player
     theSesh.player1 === player ? p1react = reactionTime : p2react = reactionTime;
 
 
@@ -236,6 +286,13 @@ const handleGamePoint = function(reactionTime, player, session) {
     io.in(session).emit('game:result', winner, points, keepPlaying, session)
 }
 
+
+/**
+ * Function for the Handling of the end sequence
+ * Flow {
+ *  Find match, who won? and tell
+ * }
+ */
 let winnerGame;
 const handleEndGame = function(session) {
    
@@ -251,6 +308,15 @@ const handleEndGame = function(session) {
     io.in(session).emit('game:endresult', winnerGame, session)
 }
 
+
+/**
+ * Function for the Handling of the restart of game
+ * Flow {
+ *  Find session
+ *  check if both players got here
+ *  if so reset all points and rounds and tell frontend its go time again
+ * }
+ */
 const handleRestart = function(session, player) {
     const theSesh = sessions.find(s => s.id === session)
 
@@ -297,5 +363,6 @@ module.exports = function(socket, _io) {
     //handle the end sequence for the game
     socket.on('game:end', handleEndGame)
 
+    // handle the restart of a game
     socket.on('game:restart', handleRestart)
 }
